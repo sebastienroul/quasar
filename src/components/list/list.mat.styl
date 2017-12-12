@@ -21,21 +21,16 @@
 
 .q-item-letter, .q-item-icon
   font-size $item-icon-size
-.q-item-letter
   width 100%
-  padding 5px 0
   text-align center
-
-.q-item-text-inverted
+.q-item-letter-inverted, .q-item-icon-inverted
   border-radius 50%
   color white
   background $primary
-  
+.q-item-letter-inverted
+  padding 4px 0 5px
 .q-item-icon-inverted
-  border-radius 50%
   font-size $item-inverted-icon-size
-  color white
-  background $primary
   padding 9px
 
 .q-item-main
@@ -107,9 +102,9 @@
   padding ($item-padding * $item-sparse-factor) $item-padding
   min-height ($item-min-height * $item-sparse-factor)
 
-.q-list-striped .q-item:nth-child(even)
+.q-list-striped > .q-item:nth-child(even)
   background-color $item-stripe-color
-.q-list-striped-odd .q-item:nth-child(odd)
+.q-list-striped-odd > .q-item:nth-child(odd)
   background-color $item-stripe-color
 
 .q-list

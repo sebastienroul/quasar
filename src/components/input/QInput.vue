@@ -7,6 +7,7 @@
     :stack-label="stackLabel"
     :float-label="floatLabel"
     :error="error"
+    :warning="warning"
     :disable="disable"
     :inverted="inverted"
     :dark="dark"
@@ -19,6 +20,7 @@
     :top-addons="isTextarea"
 
     @click="__onClick"
+    @focus="__onFocus"
   >
     <slot name="before"></slot>
 
@@ -28,8 +30,8 @@
         <textarea
           class="col q-input-target q-input-shadow absolute-top"
           ref="shadow"
-          :value="value"
-          :rows="minRows"
+          :value="model"
+          v-bind="$attrs"
         ></textarea>
 
         <textarea
@@ -41,13 +43,13 @@
           :disabled="disable"
           :readonly="readonly"
           :maxlength="maxLength"
-          :rows="minRows"
+          v-bind="$attrs"
 
-          :value="value"
+          :value="model"
           @input="__set"
 
           @focus="__onFocus"
-          @blur="__onBlur"
+          @blur="__onInputBlur"
           @keydown="__onKeydown"
           @keyup="__onKeyup"
         ></textarea>
@@ -62,21 +64,17 @@
 
       :name="name"
       :placeholder="inputPlaceholder"
-      :pattern="pattern"
       :disabled="disable"
       :readonly="readonly"
       :maxlength="maxLength"
-
-      :min="min"
-      :max="max"
-      :step="inputStep"
+      v-bind="$attrs"
 
       :type="inputType"
-      :value="value"
+      :value="model"
       @input="__set"
 
       @focus="__onFocus"
-      @blur="__onBlur"
+      @blur="__onInputBlur"
       @keydown="__onKeydown"
       @keyup="__onKeyup"
     />
@@ -84,16 +82,30 @@
     <q-icon
       v-if="isPassword && !noPassToggle && length"
       slot="after"
-      :name="showPass ? 'visibility' : 'visibility_off'"
+      :name="$q.icon.input[showPass ? 'showPass' : 'hidePass']"
       class="q-if-control"
+      @mousedown="__clearTimer"
+      @touchstart="__clearTimer"
       @click="togglePass"
     ></q-icon>
 
     <q-icon
-      v-if="clearable && length"
+      v-if="isNumber && !noNumberToggle && length"
       slot="after"
-      name="cancel"
+      :name="$q.icon.input[showNumber ? 'showNumber' : 'hideNumber']"
       class="q-if-control"
+      @mousedown="__clearTimer"
+      @touchstart="__clearTimer"
+      @click="toggleNumber"
+    ></q-icon>
+
+    <q-icon
+      v-if="editable && clearable && length"
+      slot="after"
+      :name="$q.icon.input.clear"
+      class="q-if-control"
+      @mousedown="__clearTimer"
+      @touchstart="__clearTimer"
       @click="clear"
     ></q-icon>
 
@@ -110,8 +122,8 @@
 </template>
 
 <script>
-import FrameMixin from '../input-frame/input-frame-mixin'
-import InputMixin from '../input/input-mixin'
+import FrameMixin from '../../mixins/input-frame'
+import InputMixin from '../../mixins/input'
 import inputTypes from './input-types'
 import { frameDebounce } from '../../utils/debounce'
 import { between } from '../../utils/format'
@@ -137,29 +149,26 @@ export default {
     minRows: Number,
     clearable: Boolean,
     noPassToggle: Boolean,
+    noNumberToggle: Boolean,
     readonly: Boolean,
 
-    min: Number,
-    max: Number,
-    step: {
-      type: Number,
-      default: 1
-    },
-    maxDecimals: Number
+    maxDecimals: Number,
+    upperCase: Boolean
   },
   data () {
     return {
-      focused: false,
       showPass: false,
+      showNumber: true,
+      model: this.value,
       shadow: {
-        val: this.value,
+        val: this.model,
         set: this.__set,
         loading: false,
         hasFocus: () => {
           return document.activeElement === this.$refs.input
         },
         register: () => {
-          this.watcher = this.$watch('value', val => {
+          this.watcher = this.$watch('model', val => {
             this.shadow.val = val
           })
         },
@@ -170,6 +179,12 @@ export default {
           return this.$refs.input
         }
       }
+    }
+  },
+  watch: {
+    value (v) {
+      this.model = v
+      this.isNumberError = false
     }
   },
   provide () {
@@ -192,22 +207,20 @@ export default {
     },
     pattern () {
       if (this.isNumber) {
-        return '[0-9]*'
-      }
-    },
-    inputStep () {
-      if (this.isNumber) {
-        return this.step
+        return this.$attrs.pattern || '[0-9]*'
       }
     },
     inputType () {
-      return this.isPassword
-        ? (this.showPass ? 'text' : 'password')
+      if (this.isPassword) {
+        return this.showPass ? 'text' : 'password'
+      }
+      return this.isNumber
+        ? (this.showNumber ? 'number' : 'text')
         : this.type
     },
     length () {
-      return this.value || (this.isNumber && this.value !== null)
-        ? ('' + this.value).length
+      return this.model !== null && this.model !== undefined
+        ? ('' + this.model).length
         : 0
     },
     editable () {
@@ -217,30 +230,49 @@ export default {
   methods: {
     togglePass () {
       this.showPass = !this.showPass
+      clearTimeout(this.timer)
+      this.focus()
+    },
+    toggleNumber () {
+      this.showNumber = !this.showNumber
+      clearTimeout(this.timer)
+      this.focus()
     },
     clear () {
+      clearTimeout(this.timer)
+      this.focus()
       if (this.editable) {
-        this.$emit('input', '')
-        this.$emit('change', '')
+        this.model = this.isNumber ? null : ''
+        this.$emit('input', this.model)
       }
+    },
+
+    __clearTimer () {
+      this.$nextTick(() => clearTimeout(this.timer))
     },
 
     __set (e) {
       let val = e.target ? e.target.value : e
-      if (val !== this.value) {
-        if (this.isNumber) {
-          if (val === '') {
-            val = null
-          }
-          else {
-            val = Number.isInteger(this.maxDecimals)
-              ? parseFloat(val).toFixed(this.maxDecimals)
-              : parseFloat(val)
-          }
+
+      if (this.isNumber) {
+        val = parseFloat(val)
+        if (isNaN(val)) {
+          this.isNumberError = true
+          return
         }
-        this.$emit('input', val)
-        this.$emit('change', val)
+        this.isNumberError = false
+        if (Number.isInteger(this.maxDecimals)) {
+          val = parseFloat(val.toFixed(this.maxDecimals))
+        }
       }
+      else if (this.upperCase) {
+        val = val.toUpperCase()
+      }
+
+      if (val !== this.model) {
+        this.$emit('input', val)
+      }
+      this.model = val
     },
     __updateArea () {
       const shadow = this.$refs.shadow
@@ -255,7 +287,7 @@ export default {
     this.__updateArea = frameDebounce(this.__updateArea)
     if (this.isTextarea) {
       this.__updateArea()
-      this.watcher = this.$watch('value', this.__updateArea)
+      this.watcher = this.$watch('model', this.__updateArea)
     }
   },
   beforeDestroy () {

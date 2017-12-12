@@ -1,29 +1,28 @@
 import Vue from 'vue'
 
 import install from './install'
-import start from './start'
-import * as theme from './features/theme'
 import { version } from '../package.json'
 
 import * as components from './components'
 import * as directives from './directives'
-import * as features from './features'
-import * as globals from './globals'
+import * as plugins from './plugins'
 import * as utils from './utils'
+import i18n from './i18n'
+import icons from './icons'
 
-theme.set('mat')
-Vue.use({install}, {
+Vue.use({ install }, {
   components,
-  directives
+  directives,
+  plugins
 })
 
 export default {
   version,
-  start,
+  theme: __THEME__,
 
+  i18n,
+  icons,
   components,
   directives,
-  features,
-  globals,
   utils
 }

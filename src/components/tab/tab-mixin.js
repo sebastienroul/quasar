@@ -26,14 +26,24 @@ export default {
     count: [Number, String],
     color: String
   },
-  inject: ['data', 'selectTab'],
-  computed: {
-    active () {
-      const sel = this.data.tabName === this.name
-      if (sel) {
+  inject: {
+    data: {
+      default () {
+        console.error('QTab/QRouteTab components need to be child of QTabs')
+      }
+    },
+    selectTab: {}
+  },
+  watch: {
+    active (val) {
+      if (val) {
         this.$emit('select', this.name)
       }
-      return sel
+    }
+  },
+  computed: {
+    active () {
+      return this.data.tabName === this.name
     },
     classes () {
       const cls = {
@@ -50,7 +60,7 @@ export default {
         : this.color
 
       if (color) {
-        cls[`text-${color}`] = this.$q.theme === 'ios' ? this.active : true
+        cls[`text-${color}`] = __THEME__ === 'ios' ? this.active : true
       }
 
       return cls
@@ -93,7 +103,7 @@ export default {
       }
 
       child.push(this.$slots.default)
-      if (this.$q.theme !== 'ios') {
+      if (__THEME__ !== 'ios') {
         child.push(h('div', {
           staticClass: 'q-tabs-bar',
           style: this.barStyle

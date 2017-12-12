@@ -37,7 +37,7 @@ function getBtn (h, vm, btn, clickHandler) {
       props: extend({
         icon: btn.icon,
         label: btn.label,
-        toggled: vm.caret.is(btn.cmd, btn.param),
+        toggled: btn.toggled ? btn.toggled(vm) : btn.cmd && vm.caret.is(btn.cmd, btn.param),
         color: vm.color,
         toggleColor: vm.toggleColor,
         disable: btn.disable ? btn.disable(vm) : false
@@ -67,7 +67,7 @@ function getDropdown (h, vm, btn) {
     Items
 
   function closeDropdown () {
-    Dropdown.componentInstance.close()
+    Dropdown.componentInstance.hide()
   }
 
   if (onlyIcons) {
@@ -166,7 +166,7 @@ export function getToolbar (h, vm) {
   }
 }
 
-export function getFonts (defaultFont, fonts = {}) {
+export function getFonts (defaultFont, defaultFontLabel, defaultFontIcon, fonts = {}) {
   const aliases = Object.keys(fonts)
   if (aliases.length === 0) {
     return {}
@@ -176,8 +176,8 @@ export function getFonts (defaultFont, fonts = {}) {
     default_font: {
       cmd: 'fontName',
       param: defaultFont,
-      icon: 'font_download',
-      tip: 'Default Font'
+      icon: defaultFontIcon,
+      tip: defaultFontLabel
     }
   }
 
@@ -186,70 +186,11 @@ export function getFonts (defaultFont, fonts = {}) {
     def[alias] = {
       cmd: 'fontName',
       param: name,
-      icon: 'font_download',
+      icon: defaultFontIcon,
       tip: name,
       htmlTip: `<font face="${name}">${name}</font>`
     }
   })
 
   return def
-}
-
-const camelizeRE = /-(\w)/g
-function camelize (str) {
-  return str.replace(
-    camelizeRE,
-    (_, c) => c ? c.toUpperCase() : ''
-  )
-}
-
-function getStyleObject (el) {
-  const output = {}
-
-  el.style.cssText.split(';').forEach(rule => {
-    if (rule) {
-      const parts = rule.split(':')
-      output[ camelize(parts[0].trim()) ] = parts[1].trim()
-    }
-  })
-
-  return output
-}
-
-export function getContentObject (el) {
-  if (el.nodeType === Node.TEXT_NODE) {
-    return {
-      nodeType: Node.TEXT_NODE,
-      text: el.textContent
-    }
-  }
-
-  const node = {
-    nodeType: el.nodeType,
-    tagName: el.tagName,
-    attributes: {}
-  }
-
-  if (el.tagName === 'LI') {
-    console.log(getStyleObject(el))
-  }
-  for (let i = 0, n = el.attributes.length, att = el.attributes; i < n; i++) {
-    const { nodeName, nodeValue } = att[i]
-    if (nodeName === 'style') {
-      node.style = getStyleObject(el)
-    }
-    else {
-      node.attributes[nodeName] = nodeValue
-    }
-  }
-
-  const children = Array.from(el.childNodes, getContentObject)
-  if (children.length === 1 && children[0].nodeType === Node.TEXT_NODE) {
-    node.text = children[0].text
-  }
-  else {
-    node.children = children
-  }
-
-  return node
 }

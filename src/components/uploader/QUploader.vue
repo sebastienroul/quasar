@@ -38,14 +38,14 @@
         v-if="uploading"
         slot="after"
         class="q-if-control"
-        name="clear"
+        :name="$q.icon.uploader.clear"
         @click="abort"
       ></q-icon>
 
       <q-icon
         v-if="!uploading"
         slot="after"
-        name="add"
+        :name="$q.icon.uploader.add"
         class="q-uploader-pick-button q-if-control relative-position overflow-hidden"
         @click="__pick"
         :disabled="addDisabled"
@@ -63,7 +63,7 @@
       <q-icon
         v-if="!hideUploadButton && !uploading"
         slot="after"
-        name="cloud_upload"
+        :name="$q.icon.uploader.upload"
         class="q-if-control"
         :disabled="queueLength === 0"
         @click="upload"
@@ -72,7 +72,7 @@
       <q-icon
         v-if="hasExpandedContent"
         slot="after"
-        name="keyboard_arrow_down"
+        :name="$q.icon.uploader.expand"
         class="q-if-control generic_transition"
         :class="{'rotate-180': expanded}"
         @click="expanded = !expanded"
@@ -97,13 +97,13 @@
             </div>
 
             <q-item-side v-if="file.__img" :image="file.__img.src"></q-item-side>
-            <q-item-side v-else icon="insert_drive_file" :color="color"></q-item-side>
+            <q-item-side v-else :icon="$q.icon.uploader.file" :color="color"></q-item-side>
 
             <q-item-main :label="file.name" :sublabel="file.__size"></q-item-main>
 
             <q-item-side right>
               <q-item-tile
-                :icon="file.__doneUploading ? 'done' : 'clear'"
+                :icon="$q.icon.uploader[file.__doneUploading ? 'done' : 'clear']"
                 :color="color"
                 class="cursor-pointer"
                 @click="__remove(file)"
@@ -128,12 +128,13 @@
 
 <script>
 import { QInputFrame } from '../input-frame'
-import FrameMixin from '../input-frame/input-frame-mixin'
+import FrameMixin from '../../mixins/input-frame'
 import { humanStorageSize } from '../../utils/format'
 import { QSpinner } from '../spinner'
 import { QIcon } from '../icon'
 import { QProgress } from '../progress'
 import { QItem, QItemSide, QItemMain, QItemTile } from '../list'
+import { QSlideTransition } from '../slide-transition'
 
 function initFile (file) {
   file.__doneUploading = false
@@ -153,7 +154,8 @@ export default {
     QItem,
     QItemSide,
     QItemMain,
-    QItemTile
+    QItemTile,
+    QSlideTransition
   },
   props: {
     name: {
@@ -185,10 +187,9 @@ export default {
     autoExpand: Boolean,
     expandStyle: [Array, String, Object],
     expandClass: [Array, String, Object],
-
-    color: {
-      type: String,
-      default: 'primary'
+    sendRaw: {
+      type: Boolean,
+      default: false
     }
   },
   data () {
@@ -401,13 +402,18 @@ export default {
           }
 
           this.xhrs.push(xhr)
-          xhr.send(form)
+          if (this.sendRaw) {
+            xhr.send(file)
+          }
+          else {
+            xhr.send(form)
+          }
         })
       })
     },
     upload () {
       const length = this.queueLength
-      if (length === 0) {
+      if (this.disable || length === 0) {
         return
       }
 
@@ -428,7 +434,8 @@ export default {
         }
       }
 
-      this.queue.map(file => this.__getUploadPromise(file))
+      this.queue
+        .map(file => this.__getUploadPromise(file))
         .forEach(promise => {
           promise.then(solved).catch(solved)
         })

@@ -66,8 +66,11 @@ export default {
     sizeClass () {
       if (this.size) {
         return `col-${this.size}`
+<<<<<<< HEAD
       } else {
         return 'column'
+=======
+>>>>>>> upstream/dev
       }
     }
   }

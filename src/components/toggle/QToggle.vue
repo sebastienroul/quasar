@@ -9,7 +9,7 @@
     @blur="$emit('blur')"
     @keydown.space.enter.prevent="toggle(false)"
   >
-    <div class="q-option-inner relative-position" :class="classes">
+    <div class="q-option-inner relative-position" :class="innerClasses">
       <input
         type="checkbox"
         v-model="model"
@@ -19,9 +19,9 @@
         @change="__change"
       >
       <div class="q-focus-helper"></div>
-      <div class="q-toggle-base"></div>
-      <div class="q-toggle-handle shadow-1 row flex-center">
-        <q-icon v-if="currentIcon" class="q-toggle-icon" :name="currentIcon"></q-icon>
+      <div class="q-toggle-base" :class="baseClass"></div>
+      <div class="q-toggle-handle row flex-center">
+        <q-icon v-if="currentIcon" class="q-toggle-icon" :name="currentIcon" :color="iconColor"></q-icon>
         <div v-if="$q.theme !== 'ios'" ref="ripple" class="q-radial-ripple"></div>
       </div>
     </div>
@@ -32,8 +32,8 @@
 </template>
 
 <script>
-import Mixin from '../checkbox/checkbox-mixin'
-import OptionMixin from '../option-group/option-mixin'
+import Mixin from '../../mixins/checkbox'
+import OptionMixin from '../../mixins/option'
 import { QIcon } from '../icon'
 import TouchSwipe from '../../directives/touch-swipe'
 
@@ -54,6 +54,16 @@ export default {
   computed: {
     currentIcon () {
       return (this.isActive ? this.checkedIcon : this.uncheckedIcon) || this.icon
+    },
+    iconColor () {
+      return __THEME__ === 'ios'
+        ? 'dark'
+        : (this.isActive ? 'white' : 'dark')
+    },
+    baseClass () {
+      if (__THEME__ === 'ios' && this.dark) {
+        return `q-toggle-base-dark`
+      }
     }
   },
   methods: {
