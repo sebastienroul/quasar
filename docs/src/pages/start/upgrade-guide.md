@@ -1273,7 +1273,7 @@ Replace `:handler` with `@load`.
 |`clear-value`||
 |`decimals`||
 |`float-label`||
-|`hide-underline`||
+|`hide-underline`|borderless|
 |`initial-show-password`||
 |`inverted`||
 |`inverted-light`||
